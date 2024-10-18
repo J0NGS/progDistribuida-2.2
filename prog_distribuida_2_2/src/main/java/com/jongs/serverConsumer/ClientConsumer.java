@@ -8,31 +8,16 @@ import java.net.MulticastSocket;
 import java.util.Scanner;
 
 public class ClientConsumer implements Runnable {
-    private String clientName;
     private InetAddress group;
     private MulticastSocket socket;
-    private int registrationPort;
     private int messagePort;
 
-    public ClientConsumer(String clientName, String groupAddress, int registrationPort, int messagePort) {
-        this.clientName = clientName;
-        this.registrationPort = registrationPort;
+    public ClientConsumer(String groupAddress, int messagePort) {
         this.messagePort = messagePort;
         try {
             this.group = InetAddress.getByName(groupAddress);
             this.socket = new MulticastSocket(messagePort);
             socket.joinGroup(group);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void register() {
-        try (MulticastSocket registrationSocket = new MulticastSocket()) {
-            byte[] buf = clientName.getBytes();
-            DatagramPacket packet = new DatagramPacket(buf, buf.length, group, registrationPort);
-            registrationSocket.send(packet);
-            System.out.println("Registered client: " + clientName);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -74,13 +59,10 @@ public class ClientConsumer implements Runnable {
         String groupAddress = scanner.nextLine();
         System.out.print("Enter client name: ");
         String clientName = scanner.nextLine();
-        System.out.print("Enter registration port: ");
-        int registrationPort = scanner.nextInt();
         System.out.print("Enter message port: ");
         int messagePort = scanner.nextInt();
 
-        ClientConsumer clientConsumer = new ClientConsumer(clientName, groupAddress, registrationPort, messagePort);
-        clientConsumer.register();
+        ClientConsumer clientConsumer = new ClientConsumer(groupAddress, messagePort);
 
         Runtime.getRuntime().addShutdownHook(new Thread(clientConsumer::close));
 
