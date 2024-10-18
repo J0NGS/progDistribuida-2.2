@@ -24,7 +24,6 @@ public class ServerConsumer implements Runnable {
     private MulticastSocket clientRegistrationSocket;
     private MulticastSocket messageDistributionSocket;
     private InetAddress group;
-    private static final int REGISTRATION_PORT = 4446;
     private static final int MESSAGE_PORT = 4447;
 
     public ServerConsumer(String host) {
@@ -41,10 +40,9 @@ public class ServerConsumer implements Runnable {
             channel.queueBind(QUEUE_NAME, EXCHANGE_NAME, "drones.#");
 
             // Setup multicast sockets
-            this.clientRegistrationSocket = new MulticastSocket(REGISTRATION_PORT);
-            this.messageDistributionSocket = new MulticastSocket();
+            this.messageDistributionSocket = new MulticastSocket(MESSAGE_PORT);
             this.group = InetAddress.getByName("230.0.0.0");
-            clientRegistrationSocket.joinGroup(group);
+            messageDistributionSocket.joinGroup(group);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -52,7 +50,6 @@ public class ServerConsumer implements Runnable {
 
     @Override
     public void run() {
-        new Thread(this::handleClientRegistrations).start();
         while (true) {
             try {
                 consumeData();
@@ -63,20 +60,6 @@ public class ServerConsumer implements Runnable {
         }
     }
 
-    private void handleClientRegistrations() {
-        byte[] buf = new byte[256];
-        while (true) {
-            try {
-                DatagramPacket packet = new DatagramPacket(buf, buf.length);
-                clientRegistrationSocket.receive(packet);
-                String clientName = new String(packet.getData(), 0, packet.getLength());
-                clientMessageQueues.putIfAbsent(clientName, new CopyOnWriteArrayList<>());
-                System.out.println("Client registered: " + clientName);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-    }
 
     private void consumeData() throws IOException {
         while (true) {
